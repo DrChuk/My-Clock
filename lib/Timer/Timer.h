@@ -11,6 +11,9 @@ class Timer {
             }
             return false;
         }
+        void setPeriod(uint32_t value) {
+            period = value;
+        }
     private:
         uint32_t timer, period;
 };

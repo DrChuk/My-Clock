@@ -1,30 +1,27 @@
-#include <Arduino.h>
 #include "Display.h"
+#include <LiquidCrystal_I2C.h>
 
-void Display::clear() {
-    lcd.clear();
-}
+Display::Display(uint8_t displayAddress, uint8_t w, uint8_t h, uint8_t brightPin) {
+    width = w;
+    height = h;
+    address = displayAddress;
+    brightnessPin = brightPin;
+    data = new int[w * h];
+    oldData = new int[w * h];
+    
+    for (int j = 0; j < h; j++) {
+        for (int i = 0; i < w; i++) {
+            oldData[j * w + i] = ' ';
+        }
+    }
 
-void Display::print(String* str, uint8_t x, uint8_t y) {
-    lcd.setCursor(x, y);
-    lcd.print(*str);
-}
-
-void Display::write(char value, uint8_t x, uint8_t y) {
-    lcd.setCursor(x, y);
-    lcd.write(value);
-}
-
-void Display::setBrightness(uint8_t value) {
-    analogWrite(lcdBrightPin, value);
+    lcd = LiquidCrystal_I2C(address, w, h);
 }
 
 void Display::init() {
     lcd.init();
     lcd.backlight();
     lcd.clear();
-    pinMode(lcdBrightPin, OUTPUT);
-    setBrightness(255);
 
     lcd.createChar(0, LT);
     lcd.createChar(1, UB);
@@ -36,117 +33,149 @@ void Display::init() {
     lcd.createChar(7, LMB);
 }
 
-void Display::drawDigit(byte dig, byte x, byte y) {
-    switch (dig) {
+void Display::setValue(uint8_t value, uint8_t x, uint8_t y) {
+    data[y * width + x] = value;
+}
+
+uint8_t Display::getValue(uint8_t x, uint8_t y) {
+    return data[y * width + x];
+}
+
+void Display::print(String value, uint8_t x, uint8_t y) {
+    uint8_t xPos = x;
+    uint8_t yPos = y;
+    for (int i = 0; i < value.length(); i++) {
+        if (i < (width * height)) {
+            setValue(value[i], xPos, yPos);
+            xPos++;
+            if (xPos > width) {
+                xPos = 0;
+                yPos++;
+            }
+            if (yPos > height) {
+                yPos = 0;
+            }
+        }
+    }
+}
+
+void Display::show() {
+    // lcd.home();
+    // lcd.clear();
+    for (int j = 0; j < height; j++) {
+        for (int i = 0; i < width; i++) {
+            if (oldData[j * width + i] != getValue(i, j)) {
+                lcd.setCursor(i, j);
+                lcd.write(getValue(i, j));
+                oldData[j * width + i] = getValue(i, j);
+            }
+        }
+    }
+}
+
+void Display::clear() {
+    for (int i = 0; i < width * height; i++) {
+        data[i] = ' ';
+    }
+}
+
+Display::~Display() {
+    delete[] data;
+}
+
+void Display::setBrightness(uint8_t value) {
+    analogWrite(brightnessPin, value);
+}
+
+void Display::drawDigit(uint8_t digit, uint8_t x, uint8_t y) {
+    switch (digit) {
         case 0:
-            lcd.setCursor(x, y); // set cursor to column 0, line 0 (first row)
-            lcd.write(0);  // call each segment to create
-            lcd.write(1);  // top half of the number
-            lcd.write(2);
-            lcd.setCursor(x, y + 1); // set cursor to colum 0, line 1 (second row)
-            lcd.write(3);  // call each segment to create
-            lcd.write(4);  // bottom half of the number
-            lcd.write(5);
+            setValue(0, x, y);
+            setValue(1, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(3, x, y + 1);
+            setValue(4, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 1:
-            lcd.setCursor(x, y);
-            lcd.write(32);
-            lcd.write(1);
-            lcd.write(2);
-            lcd.setCursor(x, y + 1);
-            lcd.write(32);
-            lcd.write(32);
-            lcd.write(5);
+            setValue(32, x, y);
+            setValue(1, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(32, x, y + 1);
+            setValue(32, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 2:
-            lcd.setCursor(x, y);
-            lcd.write(6);
-            lcd.write(6);
-            lcd.write(2);
-            lcd.setCursor(x, y + 1);
-            lcd.write(3);
-            lcd.write(7);
-            lcd.write(7);
+            setValue(6, x, y);
+            setValue(6, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(3, x, y + 1);
+            setValue(7, x + 1, y + 1);
+            setValue(7, x + 2, y + 1);
             break;
         case 3:
-            lcd.setCursor(x, y);
-            lcd.write(6);
-            lcd.write(6);
-            lcd.write(2);
-            lcd.setCursor(x, y + 1);
-            lcd.write(7);
-            lcd.write(7);
-            lcd.write(5);
+            setValue(6, x, y);
+            setValue(6, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(7, x, y + 1);
+            setValue(7, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 4:
-            lcd.setCursor(x, y);
-            lcd.write(3);
-            lcd.write(4);
-            lcd.write(2);
-            lcd.setCursor(x, y + 1);
-            lcd.write(32);
-            lcd.write(32);
-            lcd.write(5);
+            setValue(3, x, y);
+            setValue(4, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(32, x, y + 1);
+            setValue(32, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 5:
-            lcd.setCursor(x, y);
-            lcd.write(0);
-            lcd.write(6);
-            lcd.write(6);
-            lcd.setCursor(x, y + 1);
-            lcd.write(7);
-            lcd.write(7);
-            lcd.write(5);
+            setValue(0, x, y);
+            setValue(6, x + 1, y);
+            setValue(6, x + 2, y);
+            setValue(7, x, y + 1);
+            setValue(7, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 6:
-            lcd.setCursor(x, y);
-            lcd.write(0);
-            lcd.write(6);
-            lcd.write(6);
-            lcd.setCursor(x, y + 1);
-            lcd.write(3);
-            lcd.write(7);
-            lcd.write(5);
+            setValue(0, x, y);
+            setValue(6, x + 1, y);
+            setValue(6, x + 2, y);
+            setValue(3, x, y + 1);
+            setValue(7, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 7:
-            lcd.setCursor(x, y);
-            lcd.write(1);
-            lcd.write(1);
-            lcd.write(2);
-            lcd.setCursor(x, y + 1);
-            lcd.write(32);
-            lcd.write(0);
-            lcd.write(32);
+            setValue(1, x, y);
+            setValue(1, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(32, x, y + 1);
+            setValue(0, x + 1, y + 1);
+            setValue(32, x + 2, y + 1);
             break;
         case 8:
-            lcd.setCursor(x, y);
-            lcd.write(0);
-            lcd.write(6);
-            lcd.write(2);
-            lcd.setCursor(x, y + 1);
-            lcd.write(3);
-            lcd.write(7);
-            lcd.write(5);
+            setValue(0, x, y);
+            setValue(6, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(3, x, y + 1);
+            setValue(7, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 9:
-            lcd.setCursor(x, y);
-            lcd.write(0);
-            lcd.write(6);
-            lcd.write(2);
-            lcd.setCursor(x, y + 1);
-            lcd.write(4);
-            lcd.write(4);
-            lcd.write(5);
+            setValue(0, x, y);
+            setValue(6, x + 1, y);
+            setValue(2, x + 2, y);
+            setValue(4, x, y + 1);
+            setValue(4, x + 1, y + 1);
+            setValue(5, x + 2, y + 1);
             break;
         case 10:
-            lcd.setCursor(x, y);
-            lcd.write(32);
-            lcd.write(32);
-            lcd.write(32);
-            lcd.setCursor(x, y + 1);
-            lcd.write(32);
-            lcd.write(32);
-            lcd.write(32);
+            setValue(32, x, y);
+            setValue(32, x + 1, y);
+            setValue(32, x + 2, y);
+            setValue(32, x, y + 1);
+            setValue(32, x + 1, y + 1);
+            setValue(32, x + 2, y + 1);
             break;
     }
 }

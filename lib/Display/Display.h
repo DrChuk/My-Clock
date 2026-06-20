@@ -1,24 +1,26 @@
 #pragma once
 #include <Arduino.h>
 #include <LiquidCrystal_I2C.h>
-#include <MClasses.h>
 
 class Display {
     public:
-        Display(uint8_t address, uint8_t columns, uint8_t rows, uint8_t lcdBrightPin) : address(address), columns(columns), rows(rows), lcdBrightPin(lcdBrightPin) {}
+        Display(uint8_t displayAddress, uint8_t cols, uint8_t r, uint8_t brightPin);
+        ~Display();
         void init();
         void clear();
-        void print(String *str, uint8_t x, uint8_t y);
-        void write(char value, uint8_t x, uint8_t y);
+        void setValue(uint8_t value, uint8_t x, uint8_t y);
+        void drawDigit(uint8_t digit, uint8_t x, uint8_t y);
+        void showTime(String* time, String* date, uint8_t dots);
+        void print(String value, uint8_t x, uint8_t y);
         void setBrightness(uint8_t value);
-        void drawDigit(byte dig, byte x, byte y);
+        void show();
+        uint8_t getValue(uint8_t x, uint8_t y);
     private:
-        const uint8_t address;
-        const uint8_t lcdBrightPin;
-        const uint8_t columns;
-        const uint8_t rows;
-        
-        LiquidCrystal_I2C lcd = LiquidCrystal_I2C(address, columns, rows);
+        uint8_t width, height, address, brightnessPin;
+        int* data;
+        int* oldData;
+
+        LiquidCrystal_I2C lcd = LiquidCrystal_I2C(address, width, height);
 
         uint8_t LT[8] = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
         uint8_t UB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000};
