@@ -30,7 +30,7 @@ void setLedHue(uint8_t hue) {
 }
 
 uint8_t targetBright = 0;
-uint8_t mode; // 0 - Glowing, 1 - Breathe, 2 - Blink
+uint8_t mode;
 
 // Blinking effect settings
 uint8_t counts = 4;
@@ -38,7 +38,7 @@ uint32_t duration = 50;
 uint32_t cd = 500;
 
 Timer durationTimer(duration);
-Timer cdTimer(cd + duration * 2 * counts);
+Timer cdTimer(cd);
 bool isBlinking = false;
 bool isTurnedOn = false;
 
@@ -55,8 +55,7 @@ void ledLoop() {
 
     if (brightTimer.ready() && currentBright != targetBright) {
         currentBright = currentBright + (targetBright - currentBright) * 0.05;
-        // FastLED.setBrightness(currentBright);
-        // FastLED.show();
+        // maxBright = currentBright;
     }
 
     switch (mode)
@@ -64,7 +63,6 @@ void ledLoop() {
         case 0:
             FastLED.setBrightness(currentBright);
             FastLED.show();
-            // setLedRGB(color.red, color.green, color.blue);
             break;
         case 1:
             static uint8_t count;
@@ -117,7 +115,7 @@ void setBlinkingSettings(uint8_t countsN, uint32_t durationN, uint32_t cdN) {
     duration = durationN;
     cd = cdN;
 
-    cdTimer.setPeriod(cd + duration * 2 * counts);
+    cdTimer.setPeriod(cd);
     durationTimer.setPeriod(duration);
 }
 

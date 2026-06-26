@@ -11,6 +11,9 @@ class Timer {
             }
             return false;
         }
+        void restart() {
+            timer = millis();
+        }
         void setPeriod(uint32_t value) {
             period = value;
         }
