@@ -1,11 +1,7 @@
 #include <Arduino.h>
-#include <LiquidCrystal_I2C.h>
 #include <EncButton.h>
-#include <SoftwareSerial.h>
-#include <BMP280.h>
-#include <MClasses.h>
-#include <Timer.h>
 #include <ClockTimer.h>
+#include <ClockStopwatch.h>
 
 // 0x27 - LCD, 0x57 - ?, 0x68 - DS3231 (RTC), 0x77 - BMP280 (Temperature Sensor)
 
@@ -37,13 +33,14 @@ int getBright();
 void screenSetup();
 void screenLoop();
 void setScreenBright(uint8_t value);
+bool autoBright = true;
 void showTime(String& time, String& date, bool isAmFormat);
 void showSensorData(float temp, float pressure);
 void showDefault();
 void showMenu(uint8_t menuState);
 void showTimer(uint8_t selected, String time, bool isTicking, bool isPause, bool isShow);
 void showTimerAlarm();
-bool autoBright = true;
+void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause);
 
 // RGB functions
 #define GLOW_MODE 0
@@ -70,10 +67,16 @@ void updateClock();
 // Photoresistor functions
 int getBright();
 
+// Clock things
+// Timer
 ClockTimer timer1;
 bool timerActivated;
-bool isPause;
-bool isTicking;
+bool timerPause;
+bool timerTicking;
+// Stopwatch
+Stopwatch stopwatch;
+bool stopwatchPause;
+bool stopwatchTicking;
 
 void setup() {
     enc.setEncType(EB_STEP4_LOW);
@@ -85,8 +88,6 @@ void setup() {
     setSeaLevel(185);
 
     Serial.begin(9600);
-
-    setLedMode(2);
 
     timer1.attach([]() {
         timerActivated = true;
@@ -101,6 +102,7 @@ void loop() {
     screenLoop();
     ledLoop();
     timer1.tick();
+    stopwatch.tick();
     
     static Timer brightTimer(150);
     if (timerActivated) timerAlarm();
@@ -219,11 +221,11 @@ void timerView() {
 
     if (enc.left() && selected > 0) selected--;
     if (enc.right()) {
-        if ((isTicking || isPause) && selected < 2) selected++;
-        else if (!isTicking && !isPause && selected < 4) selected++;
+        if ((timerTicking || timerPause) && selected < 2) selected++;
+        else if (!timerTicking && !timerPause && selected < 4) selected++;
     }
 
-    if (!isPause && !isTicking) {
+    if (!timerPause && !timerTicking) {
         switch (selected) {
             case 0:
                 if (enc.click()) isMenu = false;
@@ -251,16 +253,18 @@ void timerView() {
                 break;
             case 4:
                 if (enc.click()) {
+                    if (hours == 0 && minutes == 0 && seconds == 0) return;
+
                     timer1.setTime(hours, minutes, seconds);
                     timer1.play();
 
-                    isTicking = true;
+                    timerTicking = true;
                     selected = 2;
                 }
                 break;
         }
     }
-    else if (isPause && !isTicking) {
+    else if (timerPause && !timerTicking) {
         switch (selected)
         {
             case 0: // Button Back
@@ -268,17 +272,18 @@ void timerView() {
                 break;
             case 1:
                 if (enc.click()) {
+                    timer1.stop();
                     timer1.clear();
-                    isTicking = false;
-                    isPause = false;
+                    timerTicking = false;
+                    timerPause = false;
                     selected = 4;
                 }
                 break;
             case 2:
                 if (enc.click()) {
                     timer1.play();
-                    isPause = false;
-                    isTicking = true;
+                    timerPause = false;
+                    timerTicking = true;
                 }
                 break;
         }
@@ -286,7 +291,7 @@ void timerView() {
         minutes = timer1.getMinutes();
         seconds = timer1.getSeconds();
     }
-    else if (isTicking && !isPause) {
+    else if (timerTicking && !timerPause) {
         switch (selected)
         {
             case 0:
@@ -294,16 +299,17 @@ void timerView() {
                 break;
             case 1:
                 if (enc.click()) {
+                    timer1.stop();
                     timer1.clear();
-                    isTicking = false;
+                    timerTicking = false;
                     selected = 4;
                 }
                 break;
             case 2:
                 if (enc.click()) {
                     timer1.stop();
-                    isPause = true;
-                    isTicking = false;
+                    timerPause = true;
+                    timerTicking = false;
                 }
                 break;
         }
@@ -319,7 +325,87 @@ void timerView() {
     time += ':';
     time += (seconds < 10) ? ('0' + String(seconds)) : String(seconds);
 
-    showTimer(selected, time, isTicking, isPause, isShowTime);
+    showTimer(selected, time, timerTicking, timerPause, isShowTime);
+}
+
+void stopwatchView() {
+    static uint8_t selected;
+
+    if (!stopwatchPause && !stopwatchTicking) {
+        if (enc.right() && selected < 1) selected++;
+        if (enc.left() && selected > 0) selected--;
+
+        switch (selected) {
+            case 0:
+                if (enc.click()) isMenu = false;
+                break;
+            case 1:
+                if (enc.click()) {
+                    stopwatch.play();
+                    stopwatchTicking = true;
+                    selected = 2;
+                }
+                break;
+        }
+    }
+    else if (stopwatchPause && !stopwatchTicking) {
+        if (enc.right() && selected < 2) selected++;
+        if (enc.left() && selected > 0) selected--;
+
+        switch (selected) {
+            case 0:
+                if (enc.click()) isMenu = false;
+                break;
+            case 1:
+                if (enc.click()) {
+                    stopwatch.clear();
+                    selected = 1;
+                    stopwatchPause = false;
+                }
+                break;
+            case 2:
+                if (enc.click()) {
+                    stopwatch.play();
+                    stopwatchTicking = true;
+                    stopwatchPause = false;
+                }
+                break;
+        }
+    }
+    else if (stopwatchTicking && !stopwatchPause) {
+        if (enc.right() && selected < 2) selected++;
+        if (enc.left() && selected > 0) selected--;
+
+        switch (selected) {
+            case 0:
+                if (enc.click()) isMenu = false;
+                break;
+            case 1:
+                if (enc.click()) {
+                    stopwatch.stop();
+                    stopwatch.clear();
+                    selected = 1;
+                    stopwatchTicking = false;
+                }
+                break;
+            case 2:
+                if (enc.click()) {
+                    stopwatch.stop();
+                    stopwatchPause = true;
+                    stopwatchTicking = false;
+                }
+                break;
+        }
+    }
+
+    String time;
+    time += (stopwatch.getHours() < 10) ? ('0' + String(stopwatch.getHours())) : String(stopwatch.getHours());
+    time += ':';
+    time += (stopwatch.getMinutes() < 10) ? ('0' + String(stopwatch.getMinutes())) : String(stopwatch.getMinutes());
+    time += ':';
+    time += (stopwatch.getSeconds() < 10) ? ('0' + String(stopwatch.getSeconds())) : String(stopwatch.getSeconds());
+
+    showStopwatch(time, selected, stopwatchTicking, stopwatchPause);
 }
 
 bool notAdded = true;
@@ -334,9 +420,9 @@ void menuView() {
             // case 1: // Alarm
             //     alarmView();
             //     break;
-            // case 2: // Stopwatch
-            //     stopwatchView();
-            //     break;
+            case 2: // Stopwatch
+                stopwatchView();
+                break;
             // case 3:
             //     settingsView();
             //     break;
@@ -364,15 +450,15 @@ void menuView() {
 void timerAlarm() {
     timer1.stop();
     timer1.clear();
-    isPause = false;
-    isTicking = false;
+    timerPause = false;
+    timerTicking = false;
 
     autoBright = false;
     setScreenBright(255);
     showTimerAlarm();
     setLedBrightness(255);
     setLedRGB(255, 0, 0);
-    setBlinkingSettings(4, 50, 1000);
+    setBlinkingSettings(4, 75, 1000);
     setLedMode(BLINK_MODE);
     alarm();
 

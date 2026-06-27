@@ -198,6 +198,73 @@ void showTimer(uint8_t selected, String time, bool isTicking, bool isPause, bool
     display.show();
 }
 
+void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause) {
+    display.clear();
+
+    display.print("Back", 1, 0);
+    
+    display.print(String(time[0]), 11, 0);
+    display.print(String(time[1]), 13, 0);
+
+    uint8_t x = 5;
+    uint8_t y = 1;
+
+    for (uint8_t i = 3; i < time.length(); i++) {
+        if (time[i] == ':') {
+            display.setValue(165, x - 1, y);
+            display.setValue(165, x - 1, y + 1);
+        }
+        else {
+            display.drawDigit(time[i] - '0', x, y);
+            x += 4;
+        }
+    }
+
+    if (!isTicking && !isPause) {
+        display.print("Play", 1, 3);
+        switch (selected) {
+            case 0:
+                display.setValue('>', 0, 0);
+                break;
+            case 1:
+                display.setValue('>', 0, 3);
+                break;
+        }
+    }
+    else if (isTicking && !isPause) {
+        display.print("Stop", 1, 2);
+        display.print("Pause", 1, 3);
+        switch (selected) {
+            case 0:
+                display.setValue('>', 0, 0);
+                break;
+            case 1:
+                display.setValue('>', 0, 2);
+                break;
+            case 2:
+                display.setValue('>', 0, 3);
+                break;
+        }
+    }
+    else if (isPause && !isTicking) {
+        display.print("Stop", 1, 2);
+        display.print("Play", 1, 3);
+        switch (selected) {
+            case 0:
+                display.setValue('>', 0, 0);
+                break;
+            case 1:
+                display.setValue('>', 0, 2);
+                break;
+            case 2:
+                display.setValue('>', 0, 3);
+                break;
+        }
+    }
+
+    display.show();
+}
+
 void showTimerAlarm() {
     display.clear();
 

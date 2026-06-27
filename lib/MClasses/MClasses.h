@@ -78,8 +78,3 @@ class Clock {
             *buffer = value;
         }
 };
-
-class Sensor {
-    float temperature;
-    float pressure;
-};

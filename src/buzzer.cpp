@@ -3,7 +3,7 @@
 #define BUZZER 5
 
 bool quietMode = false;
-Timer alarmTimer(100);
+Timer alarmTimer(125);
 Timer cooldownTimer(1000);
 bool cooldown = false;
 
@@ -13,7 +13,7 @@ void alarm() {
     if (cooldownTimer.ready() && cooldown) cooldown = false;
 
     if (alarmTimer.ready() && !cooldown) {
-        tone(BUZZER, 1000, 50);
+        tone(BUZZER, 2000, 50);
         counts++;
         Serial.println(counts);
     }
