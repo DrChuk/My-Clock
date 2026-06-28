@@ -26,9 +26,9 @@ class Stopwatch {
         uint8_t getSeconds() { return seconds; }
 
     private:
-        uint8_t hours;
-        uint8_t minutes;
-        uint8_t seconds;
+        uint8_t hours : 7;
+        uint8_t minutes : 6;
+        uint8_t seconds : 6;
 
         bool isStoped = true;
         Timer updateTime = Timer(1000);

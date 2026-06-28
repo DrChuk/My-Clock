@@ -1,21 +1,45 @@
 #include "Display.h"
-#include <LiquidCrystal_I2C.h>
 
-Display::Display(uint8_t displayAddress, uint8_t w, uint8_t h, uint8_t brightPin) {
-    width = w;
-    height = h;
+// const uint8_t LT[8] PROGMEM = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+// const uint8_t UB[8] PROGMEM = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000};
+// const uint8_t RT[8] PROGMEM = {0b11100,  0b11110,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
+// const uint8_t LL[8] PROGMEM = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b01111,  0b00111};
+// const uint8_t LB[8] PROGMEM = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
+// const uint8_t LR[8] PROGMEM = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11110,  0b11100};
+// const uint8_t UM[8] PROGMEM = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
+// const uint8_t LM[8] PROGMEM = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
+
+const uint8_t CHARS[8][8] PROGMEM = {
+    {0b00111, 0b01111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111},
+    {0b11111, 0b11111, 0b11111, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000},
+    {0b11100, 0b11110, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111},
+    {0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b01111, 0b00111},
+    {0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111, 0b11111},
+    {0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11111, 0b11110, 0b11100},
+    {0b11111, 0b11111, 0b11111, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111},
+    {0b11111, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111, 0b11111},
+};
+
+const uint8_t DIGIT_SEGMENTS[11][6] PROGMEM = {
+    {0, 1, 2, 3, 4, 5},
+    {32, 1, 2, 32, 32, 5},
+    {6, 6, 2, 3, 7, 7},
+    {6, 6, 2, 7, 7, 5},
+    {3, 4, 2, 32, 32, 5},
+    {0, 6, 6, 7, 7, 5},
+    {0, 6, 6, 3, 7, 5},
+    {1, 1, 2, 32, 0, 32},
+    {0, 6, 2, 3, 7, 5},
+    {0, 6, 2, 4, 4, 5},
+    {32, 32, 32, 32, 32, 32}
+};
+
+Display::Display(uint8_t displayAddress, uint8_t brightPin) : lcd(displayAddress, 20, 4) {
     address = displayAddress;
     brightnessPin = brightPin;
-    data = new int[w * h];
-    oldData = new int[w * h];
     
-    for (int j = 0; j < h; j++) {
-        for (int i = 0; i < w; i++) {
-            oldData[j * w + i] = ' ';
-        }
-    }
-
-    lcd = LiquidCrystal_I2C(address, w, h);
+    memset(data, ' ', sizeof(data));
+    memset(oldData, ' ', sizeof(oldData));
 }
 
 void Display::init() {
@@ -23,73 +47,50 @@ void Display::init() {
     lcd.backlight();
     lcd.clear();
 
-    uint8_t LT[8] = {0b00111,  0b01111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-    uint8_t UB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000};
-    uint8_t RT[8] = {0b11100,  0b11110,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111};
-    uint8_t LL[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b01111,  0b00111};
-    uint8_t LB[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-    uint8_t LR[8] = {0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11111,  0b11110,  0b11100};
-    uint8_t UMB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};
-    uint8_t LMB[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};
-
-    lcd.createChar(0, LT);
-    lcd.createChar(1, UB);
-    lcd.createChar(2, RT);
-    lcd.createChar(3, LL);
-    lcd.createChar(4, LB);
-    lcd.createChar(5, LR);
-    lcd.createChar(6, UMB);
-    lcd.createChar(7, LMB);
+    for (uint8_t i = 0; i < 8; i++) {
+        uint8_t buf[8];
+        memcpy_P(buf, CHARS[i], 8);
+        lcd.createChar(i, buf);
+    }
 }
 
-void Display::setValue(uint8_t value, uint8_t x, uint8_t y) {
-    data[y * width + x] = value;
+void Display::print(const char* value, uint8_t x, uint8_t y) {
+    uint8_t xPos = x, yPos = y;
+    for (uint8_t i = 0; value[i] != '\0'; i++) {
+        setValue(value[i], xPos, yPos);
+        if (++xPos >= width) { xPos = 0; yPos++; }
+        if (yPos >= height) yPos = 0;
+    }
 }
 
-uint8_t Display::getValue(uint8_t x, uint8_t y) {
-    return data[y * width + x];
-}
-
-void Display::print(String value, uint8_t x, uint8_t y) {
-    uint8_t xPos = x;
-    uint8_t yPos = y;
-    for (int i = 0; i < value.length(); i++) {
-        if (i < (width * height)) {
-            setValue(value[i], xPos, yPos);
-            xPos++;
-            if (xPos > width) {
-                xPos = 0;
-                yPos++;
-            }
-            if (yPos > height) {
-                yPos = 0;
-            }
-        }
+void Display::print(const __FlashStringHelper* value, uint8_t x, uint8_t y) {
+    uint8_t xPos = x, yPos = y;
+    PGM_P p = reinterpret_cast<PGM_P>(value);
+    for (uint8_t i = 0; pgm_read_byte(&p[i]) != '\0' && i < (width * height); i++) {
+        setValue(pgm_read_byte(&p[i]), xPos, yPos);
+        if (++xPos >= width) { xPos = 0; yPos++; }
+        if (yPos >= height) yPos = 0;
     }
 }
 
 void Display::show() {
-    // lcd.home();
-    // lcd.clear();
-    for (int j = 0; j < height; j++) {
-        for (int i = 0; i < width; i++) {
-            if (oldData[j * width + i] != getValue(i, j)) {
+    for (uint8_t j = 0; j < height; j++) {
+        for (uint8_t i = 0; i < width; i++) {
+            uint8_t charAddress = j * width + i;
+            uint8_t current = data[charAddress];
+            if (current != oldData[charAddress]) {
                 lcd.setCursor(i, j);
-                lcd.write(getValue(i, j));
-                oldData[j * width + i] = getValue(i, j);
+                lcd.write(current);
+                oldData[charAddress] = current;
             }
         }
     }
 }
 
 void Display::clear() {
-    for (int i = 0; i < width * height; i++) {
+    for (uint8_t i = 0; i < width * height; i++) {
         data[i] = ' ';
     }
-}
-
-Display::~Display() {
-    delete[] data;
 }
 
 void Display::setBrightness(uint8_t value) {
@@ -97,94 +98,9 @@ void Display::setBrightness(uint8_t value) {
 }
 
 void Display::drawDigit(uint8_t digit, uint8_t x, uint8_t y) {
-    switch (digit) {
-        case 0:
-            setValue(0, x, y);
-            setValue(1, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(3, x, y + 1);
-            setValue(4, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 1:
-            setValue(32, x, y);
-            setValue(1, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(32, x, y + 1);
-            setValue(32, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 2:
-            setValue(6, x, y);
-            setValue(6, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(3, x, y + 1);
-            setValue(7, x + 1, y + 1);
-            setValue(7, x + 2, y + 1);
-            break;
-        case 3:
-            setValue(6, x, y);
-            setValue(6, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(7, x, y + 1);
-            setValue(7, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 4:
-            setValue(3, x, y);
-            setValue(4, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(32, x, y + 1);
-            setValue(32, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 5:
-            setValue(0, x, y);
-            setValue(6, x + 1, y);
-            setValue(6, x + 2, y);
-            setValue(7, x, y + 1);
-            setValue(7, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 6:
-            setValue(0, x, y);
-            setValue(6, x + 1, y);
-            setValue(6, x + 2, y);
-            setValue(3, x, y + 1);
-            setValue(7, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 7:
-            setValue(1, x, y);
-            setValue(1, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(32, x, y + 1);
-            setValue(0, x + 1, y + 1);
-            setValue(32, x + 2, y + 1);
-            break;
-        case 8:
-            setValue(0, x, y);
-            setValue(6, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(3, x, y + 1);
-            setValue(7, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 9:
-            setValue(0, x, y);
-            setValue(6, x + 1, y);
-            setValue(2, x + 2, y);
-            setValue(4, x, y + 1);
-            setValue(4, x + 1, y + 1);
-            setValue(5, x + 2, y + 1);
-            break;
-        case 10:
-            setValue(32, x, y);
-            setValue(32, x + 1, y);
-            setValue(32, x + 2, y);
-            setValue(32, x, y + 1);
-            setValue(32, x + 1, y + 1);
-            setValue(32, x + 2, y + 1);
-            break;
+    if (digit > 10) return;
+    for (uint8_t i = 0; i < 6; i++) {
+        uint8_t segment = pgm_read_byte(&DIGIT_SEGMENTS[digit][i]);
+        setValue(segment, x + i % 3, y + i / 3);
     }
 }

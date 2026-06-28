@@ -4,6 +4,10 @@
 
 class ClockTimer {
     public:
+        ClockTimer() {
+            isPause = 1;
+        }
+
         void setTime(uint8_t hour, uint8_t minute, uint8_t second) {
             hours = hour;
             minutes = minute;
@@ -61,11 +65,12 @@ class ClockTimer {
             _callback = callback;
         }
     private:
-        uint8_t hours;
-        uint8_t minutes;
-        uint8_t seconds;
+        uint8_t hours : 7;
+        uint8_t minutes : 6;
+        uint8_t seconds : 6;
 
-        bool isPause = true;
+        uint8_t isPause : 1;
+        // isPause = 1;
 
         Timer updateTimer = Timer(1000);
 

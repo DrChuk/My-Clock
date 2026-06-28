@@ -34,7 +34,7 @@ void screenSetup();
 void screenLoop();
 void setScreenBright(uint8_t value);
 bool autoBright = true;
-void showTime(String& time, String& date, bool isAmFormat);
+void showTime(const char* time, const char* date, bool isAmFormat);
 void showSensorData(float temp, float pressure);
 void showDefault();
 void showMenu(uint8_t menuState);
@@ -67,16 +67,21 @@ void updateClock();
 // Photoresistor functions
 int getBright();
 
+struct ClockFlags
+{
+    uint8_t timerActivated : 1;
+    uint8_t timerPause : 1;
+    uint8_t timerTicking : 1;
+    uint8_t stopwatchPause : 1;
+    uint8_t stopwatchTicking : 1;
+};
+ClockFlags clockFlags;
+
 // Clock things
 // Timer
 ClockTimer timer1;
-bool timerActivated;
-bool timerPause;
-bool timerTicking;
 // Stopwatch
 Stopwatch stopwatch;
-bool stopwatchPause;
-bool stopwatchTicking;
 
 void setup() {
     enc.setEncType(EB_STEP4_LOW);
@@ -90,7 +95,7 @@ void setup() {
     Serial.begin(9600);
 
     timer1.attach([]() {
-        timerActivated = true;
+        clockFlags.timerActivated = true;
     });
 }
 
@@ -105,7 +110,7 @@ void loop() {
     stopwatch.tick();
     
     static Timer brightTimer(150);
-    if (timerActivated) timerAlarm();
+    if (clockFlags.timerActivated) timerAlarm();
     else navigateView();
 
     if (brightTimer.ready() && autoBright) {
@@ -221,11 +226,11 @@ void timerView() {
 
     if (enc.left() && selected > 0) selected--;
     if (enc.right()) {
-        if ((timerTicking || timerPause) && selected < 2) selected++;
-        else if (!timerTicking && !timerPause && selected < 4) selected++;
+        if ((clockFlags.timerTicking || clockFlags.timerPause) && selected < 2) selected++;
+        else if (!clockFlags.timerTicking && !clockFlags.timerPause && selected < 4) selected++;
     }
 
-    if (!timerPause && !timerTicking) {
+    if (!clockFlags.timerPause && !clockFlags.timerTicking) {
         switch (selected) {
             case 0:
                 if (enc.click()) isMenu = false;
@@ -258,13 +263,13 @@ void timerView() {
                     timer1.setTime(hours, minutes, seconds);
                     timer1.play();
 
-                    timerTicking = true;
+                    clockFlags.timerTicking = true;
                     selected = 2;
                 }
                 break;
         }
     }
-    else if (timerPause && !timerTicking) {
+    else if (clockFlags.timerPause && !clockFlags.timerTicking) {
         switch (selected)
         {
             case 0: // Button Back
@@ -274,16 +279,16 @@ void timerView() {
                 if (enc.click()) {
                     timer1.stop();
                     timer1.clear();
-                    timerTicking = false;
-                    timerPause = false;
+                    clockFlags.timerTicking = false;
+                    clockFlags.timerPause = false;
                     selected = 4;
                 }
                 break;
             case 2:
                 if (enc.click()) {
                     timer1.play();
-                    timerPause = false;
-                    timerTicking = true;
+                    clockFlags.timerPause = false;
+                    clockFlags.timerTicking = true;
                 }
                 break;
         }
@@ -291,7 +296,7 @@ void timerView() {
         minutes = timer1.getMinutes();
         seconds = timer1.getSeconds();
     }
-    else if (timerTicking && !timerPause) {
+    else if (clockFlags.timerTicking && !clockFlags.timerPause) {
         switch (selected)
         {
             case 0:
@@ -301,15 +306,15 @@ void timerView() {
                 if (enc.click()) {
                     timer1.stop();
                     timer1.clear();
-                    timerTicking = false;
+                    clockFlags.timerTicking = false;
                     selected = 4;
                 }
                 break;
             case 2:
                 if (enc.click()) {
                     timer1.stop();
-                    timerPause = true;
-                    timerTicking = false;
+                    clockFlags.timerPause = true;
+                    clockFlags.timerTicking = false;
                 }
                 break;
         }
@@ -325,13 +330,13 @@ void timerView() {
     time += ':';
     time += (seconds < 10) ? ('0' + String(seconds)) : String(seconds);
 
-    showTimer(selected, time, timerTicking, timerPause, isShowTime);
+    showTimer(selected, time, clockFlags.timerTicking, clockFlags.timerPause, isShowTime);
 }
 
 void stopwatchView() {
     static uint8_t selected;
 
-    if (!stopwatchPause && !stopwatchTicking) {
+    if (!clockFlags.stopwatchPause && !clockFlags.stopwatchTicking) {
         if (enc.right() && selected < 1) selected++;
         if (enc.left() && selected > 0) selected--;
 
@@ -342,13 +347,13 @@ void stopwatchView() {
             case 1:
                 if (enc.click()) {
                     stopwatch.play();
-                    stopwatchTicking = true;
+                    clockFlags.stopwatchTicking = true;
                     selected = 2;
                 }
                 break;
         }
     }
-    else if (stopwatchPause && !stopwatchTicking) {
+    else if (clockFlags.stopwatchPause && !clockFlags.stopwatchTicking) {
         if (enc.right() && selected < 2) selected++;
         if (enc.left() && selected > 0) selected--;
 
@@ -360,19 +365,19 @@ void stopwatchView() {
                 if (enc.click()) {
                     stopwatch.clear();
                     selected = 1;
-                    stopwatchPause = false;
+                    clockFlags.stopwatchPause = false;
                 }
                 break;
             case 2:
                 if (enc.click()) {
                     stopwatch.play();
-                    stopwatchTicking = true;
-                    stopwatchPause = false;
+                    clockFlags.stopwatchTicking = true;
+                    clockFlags.stopwatchPause = false;
                 }
                 break;
         }
     }
-    else if (stopwatchTicking && !stopwatchPause) {
+    else if (clockFlags.stopwatchTicking && !clockFlags.stopwatchPause) {
         if (enc.right() && selected < 2) selected++;
         if (enc.left() && selected > 0) selected--;
 
@@ -385,14 +390,14 @@ void stopwatchView() {
                     stopwatch.stop();
                     stopwatch.clear();
                     selected = 1;
-                    stopwatchTicking = false;
+                    clockFlags.stopwatchTicking = false;
                 }
                 break;
             case 2:
                 if (enc.click()) {
                     stopwatch.stop();
-                    stopwatchPause = true;
-                    stopwatchTicking = false;
+                    clockFlags.stopwatchPause = true;
+                    clockFlags.stopwatchTicking = false;
                 }
                 break;
         }
@@ -405,7 +410,7 @@ void stopwatchView() {
     time += ':';
     time += (stopwatch.getSeconds() < 10) ? ('0' + String(stopwatch.getSeconds())) : String(stopwatch.getSeconds());
 
-    showStopwatch(time, selected, stopwatchTicking, stopwatchPause);
+    showStopwatch(time, selected, clockFlags.stopwatchTicking, clockFlags.stopwatchPause);
 }
 
 bool notAdded = true;
@@ -450,8 +455,8 @@ void menuView() {
 void timerAlarm() {
     timer1.stop();
     timer1.clear();
-    timerPause = false;
-    timerTicking = false;
+    clockFlags.timerPause = false;
+    clockFlags.timerTicking = false;
 
     autoBright = false;
     setScreenBright(255);
@@ -464,7 +469,7 @@ void timerAlarm() {
 
     if (enc.click()) {
         autoBright = true;
-        timerActivated = false;
+        clockFlags.timerActivated = false;
     }
 }
 

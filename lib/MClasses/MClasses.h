@@ -3,13 +3,13 @@
 
 class Clock {
     public:
-        uint8_t seconds;
-        uint8_t minutes;
-        uint8_t hours;
-        uint8_t day;
-        uint8_t month;
-        uint8_t year;
-        uint8_t weekday;
+        uint8_t seconds : 6;
+        uint8_t minutes : 6;
+        uint8_t hours : 5;
+        uint8_t day : 5;
+        uint8_t month : 4;
+        uint8_t year : 7;
+        uint8_t weekday : 3;
 
         void returnTimeAsString(String* buffer, bool sec) {
             String value;

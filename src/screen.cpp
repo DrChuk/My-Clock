@@ -2,17 +2,13 @@
 #include <Display.h>
 #include <Timer.h>
 
-Display display(0x27, 20, 4, 3);
-
-// RTC functions
-void getTime(String *buffer, bool sec);
-void getDate(String *buffer, bool withWeekday);
+Display display(0x27, 3);
 
 void screenSetup() {
     display.init();
 }
 
-void showTime(String &time, String &date, bool isAmFormat) {
+void showTime(const char* time, const char* date, bool isAmFormat) {
     static Timer dotsTimer(500);
     static bool dots;
 
@@ -26,10 +22,11 @@ void showTime(String &time, String &date, bool isAmFormat) {
     String fTime;
     uint8_t hours = (uint8_t)(time[0] - '0') * 10 + (uint8_t)time[1] - '0';
     uint8_t minutes = (uint8_t)(time[3] - '0') * 10 + (uint8_t)(time[4] - '0');
-    String ap;
+    char ap[2];
 
     if (isAmFormat) {
-        ap = (hours > 12) ? "PM" : "AM";
+        ap[0] = (hours > 12) ? 'P' : 'A';
+        ap[1] = 'M';
         if (hours > 12) hours -= 12;
     }
     fTime = ((hours < 10) ? ('0' + String(hours)) : String(hours)) + ':' + ((minutes < 10) ? ('0' + String(minutes)) : String(minutes));
@@ -51,7 +48,7 @@ void showTime(String &time, String &date, bool isAmFormat) {
         }
     }
 
-    uint8_t dateX = 10 - (date.length() / 2);
+    uint8_t dateX = 10 - (sizeof(date) / sizeof(date[0]) / 2);
 
     display.print(date, dateX, 3);
     display.print(ap, 18, 2);
@@ -59,8 +56,6 @@ void showTime(String &time, String &date, bool isAmFormat) {
 }
 
 void showSensorData(float temp, float pressure) {
-    String value = String(temp) + char(223) + "C, " + String(pressure) + "mmHg";
-
     display.clear();
 
     uint8_t x = 0;
@@ -86,29 +81,29 @@ void showSensorData(float temp, float pressure) {
         x += 4;
     }
 
-    display.print("mm", x - 1, y);
-    display.print("Hg", x - 1, y + 1);
+    display.print(F("mm"), x - 1, y);
+    display.print(F("Hg"), x - 1, y + 1);
 
     display.show();
 }
 
 void showDefault() {
     display.clear();
-    display.print("Default", 6, 0);
-    display.print("Default", 6, 1);
-    display.print("Default", 6, 2);
-    display.print("Default", 6, 3);
+    display.print(F("Default"), 6, 0);
+    display.print(F("Default"), 6, 1);
+    display.print(F("Default"), 6, 2);
+    display.print(F("Default"), 6, 3);
     display.show();
 }
 
-String showOption[] = {"Timer", "Alarm", "Stopwatch", "Settings"};
-
 void showMenu(uint8_t menuState) {
     display.clear();
-    for (unsigned int i = 0; i < sizeof(showOption) / sizeof(showOption[0]); i++) {
-        display.print(showOption[i], 1, i);
-    }
 
+    display.print(F("Timer"), 1, 0);
+    display.print(F("Alarm"), 1, 1);
+    display.print(F("Stopwatch"), 1, 2);
+    display.print(F("Settings"), 1, 3);
+    
     display.setValue('>', 0, menuState);
     
     display.show();
@@ -201,10 +196,10 @@ void showTimer(uint8_t selected, String time, bool isTicking, bool isPause, bool
 void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause) {
     display.clear();
 
-    display.print("Back", 1, 0);
+    display.print(F("Back"), 1, 0);
     
-    display.print(String(time[0]), 11, 0);
-    display.print(String(time[1]), 13, 0);
+    display.setValue(time[0], 11, 0);
+    display.setValue(time[1], 13, 0);
 
     uint8_t x = 5;
     uint8_t y = 1;
@@ -232,8 +227,8 @@ void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause) 
         }
     }
     else if (isTicking && !isPause) {
-        display.print("Stop", 1, 2);
-        display.print("Pause", 1, 3);
+        display.print(F("Stop"), 1, 2);
+        display.print(F("Pause"), 1, 3);
         switch (selected) {
             case 0:
                 display.setValue('>', 0, 0);
@@ -247,8 +242,8 @@ void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause) 
         }
     }
     else if (isPause && !isTicking) {
-        display.print("Stop", 1, 2);
-        display.print("Play", 1, 3);
+        display.print(F("Stop"), 1, 2);
+        display.print(F("Play"), 1, 3);
         switch (selected) {
             case 0:
                 display.setValue('>', 0, 0);
@@ -268,9 +263,9 @@ void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause) 
 void showTimerAlarm() {
     display.clear();
 
-    display.print("Time Out", 6, 1);
-    display.print("Press the button", 2, 2);
-    display.print("to stop an alarm", 2, 3);
+    display.print(F("Time Out"), 6, 1);
+    display.print(F("Press the button"), 2, 2);
+    display.print(F("to stop an alarm"), 2, 3);
 
     display.show();
 }
