@@ -23,19 +23,18 @@ bool BMP280::measure() {
     int32_t rawPressure = ((uint32_t)read8(PRESSURE_MSB) << 12) | ((uint32_t)read8(PRESSURE_LSB) << 4) | ((uint32_t)read8(PRESSURE_XLSB) >> 4);
     int32_t rawTemperature = (int32_t)(((uint32_t)read8(TEMPERATURE_MSB) << 12) | ((uint32_t)read8(TEMPERATURE_LSB) << 4) | ((uint32_t)(read8(TEMPERATURE_XLSB) & 0xF0) >> 4));
 
-    temperature = (float)compensateTemperature(rawTemperature) / 100;
-    pressure = (float)compensatePressure(rawPressure) / 100;
+    temperature = compensateTemperature(rawTemperature) / 10;
+    pressure = compensatePressure(rawPressure) / 100;
     
     measure_timer = millis();
     return true;
 }
 
-float BMP280::getTemperature() {
+int BMP280::getTemperature() {
     return temperature;
 }
-float BMP280::getPressure() {
-    float newPress = pressure * pow(1 - 0.0000225577 * sea_level, -5.255);
-    return newPress;
+int BMP280::getPressure() {
+    return pressure * pow(1 - 0.0000225577 * sea_level, -5.255);;
 }
 
 int32_t t_fine = 0;

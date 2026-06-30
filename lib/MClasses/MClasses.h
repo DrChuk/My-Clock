@@ -1,80 +1,77 @@
 #pragma once
 #include <Arduino.h>
+#include <stdio.h>
 
 class Clock {
+    private:
+        uint8_t data[7];
+
     public:
-        uint8_t seconds : 6;
-        uint8_t minutes : 6;
-        uint8_t hours : 5;
-        uint8_t day : 5;
-        uint8_t month : 4;
-        uint8_t year : 7;
-        uint8_t weekday : 3;
 
-        void returnTimeAsString(String* buffer, bool sec) {
-            String value;
+        inline uint8_t getSeconds() const { return data[0]; }
+        inline void setSeconds(uint8_t value) { data[0] = value; }
 
-            value = (hours < 10) ? ("0" + (String)hours) : (String)hours;
-            value += ":" + ((minutes < 10) ? ("0" + (String)minutes) : (String)minutes);
-            if (sec)
-                value += ":" + ((seconds < 10) ? ("0" + (String)seconds) : (String)seconds);
+        inline uint8_t getMinutes() const { return data[1]; }
+        inline void setMinutes(uint8_t value) { data[1] = value; }
 
-            *buffer = value;
-        }
+        inline uint8_t getHours() const { return data[2]; }
+        inline void setHours(uint8_t value) { data[2] = value; }
 
-        void returnDateAsString(String* buffer) {
-            String value;
+        inline uint8_t getDay() const { return data[3]; }
+        inline void setDay(uint8_t value) { data[3] = value; }
 
-            value = (day < 10) ? ("0" + (String)day) : (String)day;
-            value += "." + ((month < 10) ? ("0" + (String)month) : (String)month);
-            value += ".20" + ((year < 10) ? ("0" + (String)year) : (String)year);
+        inline uint8_t getMonth() const { return data[4]; }
+        inline void setMonth(uint8_t value) { data[4] = value; }
 
-            *buffer = value;
-        }
+        inline uint8_t getYear() const { return data[5]; }
+        inline void setYear(uint8_t value) { data[5] = value; }
 
-        void returnWeekdayAsString(String* buffer) {
-            String value;
+        inline uint8_t getWeekday() const { return data[6]; }
+        inline void setWeekday(uint8_t value) { data[6] = value; }
 
-            switch (weekday) {
-                case 1:
-                    value = "Sun";
-                    break;
-                case 2:
-                    value = "Mon";
-                    break;
-                case 3:
-                    value = "Tue";
-                    break;
-                case 4:
-                    value = "Wed";
-                    break;
-                case 5:
-                    value = "Thu";
-                    break;
-                case 6:
-                    value = "Fri";
-                    break;
-                case 7:
-                    value = "Sat";
-                    break;
+        void returnTimeAsString(char* buffer, uint8_t bufferSize, bool showSeconds = false) {
+            if (showSeconds) {
+                snprintf(buffer, bufferSize, "%02d:%02d:%02d", getHours(), getMinutes(), getSeconds());
+            } else {
+                snprintf(buffer, bufferSize, "%02d:%02d", getHours(), getMinutes());
             }
-
-            *buffer = value;
         }
 
-        void returnClockAsString(String* buffer) {
-            String value;
+        void returnDateAsString(char* buffer, uint8_t bufferSize) {
+            snprintf(buffer, bufferSize, "%02d.%02d.20%02d", getDay(), getMonth(), getYear());
+        }
 
-            value = (hours < 10) ? ("0" + (String)hours) : (String)hours;
-            value += ":" + ((minutes < 10) ? ("0" + (String)minutes) : (String)minutes);
-            value += ":" + ((seconds < 10) ? ("0" + (String)seconds) : (String)seconds);
-            value += ", ";
-            value += (day < 10) ? ("0" + (String)day) : (String)day;
-            value += "." + ((month < 10) ? ("0" + (String)month) : (String)month);
-            value += "." + ((year < 10) ? ("0" + (String)year) : (String)year);
-            value += ", ";
-            value += (weekday < 10) ? ("0" + (String)weekday) : (String)weekday;
+        void returnWeekdayAsString(char* buffer, uint8_t bufferSize) {
+            const char* days[] = {"", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
 
-            *buffer = value;
+            uint8_t weekday = getWeekday();
+            if (weekday >= 1 && weekday <= 7) {
+                strncpy(buffer, days[weekday], bufferSize - 1);
+                buffer[bufferSize - 1] = '\0';
+            } else {
+                buffer[0] = '\0';
+            }
+        }
+
+        void syncFromRTC(DS3231& rtc) {
+            setSeconds(rtc.getSeconds());
+            setMinutes(rtc.getMinutes());
+            setHours(rtc.getHours());
+            setDay(rtc.getDay());
+            setMonth(rtc.getMonth());
+            setYear(rtc.getYear());
+            setWeekday(rtc.getWeekday());
+        }
+
+        void syncToRTC(DS3231& rtc) {
+            rtc.setSeconds(getSeconds());
+            rtc.setMinutes(getMinutes());
+            rtc.setHours(getHours());
+            rtc.setDay(getDay());
+            rtc.setMonth(getMonth());
+            rtc.setYear(getYear());
+            rtc.setWeekday(getWeekday());
         }
 };
+
+static_assert(sizeof(Clock) == 7, "Clock size is not 7 bytes!");

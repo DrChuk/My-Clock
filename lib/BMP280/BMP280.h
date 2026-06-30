@@ -53,8 +53,8 @@ class BMP280 {
         bool init();
         
         bool measure();
-        float getTemperature();
-        float getPressure();
+        int getTemperature();
+        int getPressure();
 
         void setSeaLevel(uint16_t value) {sea_level = value;}
     private:
@@ -63,8 +63,8 @@ class BMP280 {
 
         uint16_t sea_level = 0;
 
-        float temperature = 0;
-        float pressure = 0;
+        int temperature = 0;
+        int pressure = 0;
         
         uint8_t read8(uint8_t reg);
         bool write8(uint8_t reg, uint8_t data);

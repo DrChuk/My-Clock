@@ -19,20 +19,20 @@ void showTime(const char* time, const char* date, bool isAmFormat) {
     uint8_t x = 3;
     uint8_t y = 1;
 
-    String fTime;
-    uint8_t hours = (uint8_t)(time[0] - '0') * 10 + (uint8_t)time[1] - '0';
-    uint8_t minutes = (uint8_t)(time[3] - '0') * 10 + (uint8_t)(time[4] - '0');
-    char ap[2];
+    char* sep = strchr(time, ':');
+    char hoursS[3] = "";
+    strncpy(hoursS, time, sep - time);
+    uint8_t hours = atoi(hoursS);
+    // uint8_t minutes = (uint8_t)(time[3] - '0') * 10 + (uint8_t)(time[4] - '0');
+    char ap[] = "MM";
 
     if (isAmFormat) {
         ap[0] = (hours > 12) ? 'P' : 'A';
-        ap[1] = 'M';
         if (hours > 12) hours -= 12;
     }
-    fTime = ((hours < 10) ? ('0' + String(hours)) : String(hours)) + ':' + ((minutes < 10) ? ('0' + String(minutes)) : String(minutes));
 
-    for (uint8_t i = 0; i < fTime.length(); i++) {
-        if (fTime[i] == ':') {
+    for (uint8_t i = 0; i < strlen(time); i++) {
+        if (time[i] == ':') {
             if (dots) {
                 display.setValue(165, x - 1, y);
                 display.setValue(165, x - 1, y + 1);
@@ -43,41 +43,49 @@ void showTime(const char* time, const char* date, bool isAmFormat) {
             }
         }
         else {
-            display.drawDigit(fTime[i] - '0', x, y);
+            display.drawDigit(time[i] - '0', x, y);
             x += 4;
         }
     }
 
-    uint8_t dateX = 10 - (sizeof(date) / sizeof(date[0]) / 2);
+    uint8_t dateX = 10 - (strlen(date) / 2);
 
     display.print(date, dateX, 3);
-    display.print(ap, 18, 2);
+    if (isAmFormat) display.print(ap, 18, 2);
     display.show();
 }
 
-void showSensorData(float temp, float pressure) {
+void showSensorData(int temp, int pressure) {
     display.clear();
+    
+    char stringTemp[5] = "";
+    snprintf(stringTemp, 5, "%02d", temp);
+    stringTemp[3] = stringTemp[2];
+    stringTemp[2] = '.';
 
     uint8_t x = 0;
     uint8_t y = 0;
 
-    for (unsigned int i = 0; i < String(temp).length() - 1; i++) {
-        if (String(temp)[i] == '.') {
+    for (unsigned int i = 0; i < strlen(stringTemp); i++) {
+        if (stringTemp[i] == '.') {
             display.setValue('.', x - 1, y + 1);
         }
         else {
-            display.drawDigit((uint8_t)(String(temp)[i] - '0'), x, y);
+            display.drawDigit(stringTemp[i] - '0', x, y);
             x += 4;
         }
     }
     display.setValue(111, x - 1, y);
     display.setValue('C', x, y);
 
+    char stringPressure[4] = "";
+    snprintf(stringPressure, 4, "%02d", pressure);
+
     x = 7;
     y = 2;
 
-    for (unsigned int i = 0; i < String(pressure).length() - 3; i++) {
-        display.drawDigit((uint8_t)(String(pressure)[i]) - '0', x, y);
+    for (unsigned int i = 0; i < strlen(stringPressure); i++) {
+        display.drawDigit(stringPressure[i] - '0', x, y);
         x += 4;
     }
 
@@ -109,17 +117,17 @@ void showMenu(uint8_t menuState) {
     display.show();
 }
 
-void showTimer(uint8_t selected, String time, bool isTicking, bool isPause, bool isShow) {
-    String options = "bhmsp";
+void showTimer(uint8_t selected, const char* time, bool isTicking, bool isPause, bool isShow) {
+    char options[10] = "bhmsp";
 
     display.clear();
-    display.print("Back", 1, 0);
+    display.print(F("Back"), 1, 0);
 
     display.setValue(time[0], 0, 2);
 
     uint8_t x = 1;
     uint8_t y = 1;
-    for (unsigned int i = 1; i < time.length(); i++) {
+    for (uint8_t i = 1; i < strlen(time); i++) {
         if (time[i] == ':') {
             display.setValue(165, x - 1, y);
             display.setValue(165, x - 1, y + 1);
@@ -133,16 +141,16 @@ void showTimer(uint8_t selected, String time, bool isTicking, bool isPause, bool
     if (isTicking) {
         display.print("Stop", 3, 3);
         display.print("Pause", 12, 3);
-        options = "bSP";
+        strcpy(options, "bSP");
     }
     else if (isPause) {
         display.print("Stop", 3, 3);
         display.print("Play", 12, 3);
-        options = "bSp";
+        strcpy(options, "bSp");
     }
     else {
         display.print("Play", 8, 3);
-        options = "bhmsp";
+        strcpy(options, "bhmsp");
     }
 
     x = 0;
@@ -193,7 +201,7 @@ void showTimer(uint8_t selected, String time, bool isTicking, bool isPause, bool
     display.show();
 }
 
-void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause) {
+void showStopwatch(const char* time, uint8_t selected, bool isTicking, bool isPause) {
     display.clear();
 
     display.print(F("Back"), 1, 0);
@@ -204,7 +212,7 @@ void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause) 
     uint8_t x = 5;
     uint8_t y = 1;
 
-    for (uint8_t i = 3; i < time.length(); i++) {
+    for (uint8_t i = 3; i < strlen(time); i++) {
         if (time[i] == ':') {
             display.setValue(165, x - 1, y);
             display.setValue(165, x - 1, y + 1);

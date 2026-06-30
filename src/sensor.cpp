@@ -11,12 +11,12 @@ void setSeaLevel(float seaLevel) {
     sens.setSeaLevel(seaLevel);
 }
 
-float getTemperature() {
+int getTemperature() {
     sens.measure();
     return sens.getTemperature();
 }
 
-float getPressure() {
+int getPressure() {
     sens.measure();
     return sens.getPressure();
 }

@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Timer.h>
+#include <NewTone.h>
 #define BUZZER 5
 
 bool quietMode = false;
@@ -13,9 +14,9 @@ void alarm() {
     if (cooldownTimer.ready() && cooldown) cooldown = false;
 
     if (alarmTimer.ready() && !cooldown) {
-        tone(BUZZER, 2000, 50);
+        NewTone(BUZZER, 2000, 50);
+        // tone(BUZZER, 2000, 50);
         counts++;
-        Serial.println(counts);
     }
     if (counts >= 4) {
         counts = 0;

@@ -23,8 +23,8 @@ bool getQuietMode();
 // Sensor functions
 void sensorSetup();
 void setSeaLevel(float seaLevel);
-float getTemperature();
-float getPressure();
+int getTemperature();
+int getPressure();
 
 // Photoresistor
 int getBright();
@@ -35,12 +35,12 @@ void screenLoop();
 void setScreenBright(uint8_t value);
 bool autoBright = true;
 void showTime(const char* time, const char* date, bool isAmFormat);
-void showSensorData(float temp, float pressure);
+void showSensorData(int temp, int pressure);
 void showDefault();
 void showMenu(uint8_t menuState);
-void showTimer(uint8_t selected, String time, bool isTicking, bool isPause, bool isShow);
+void showTimer(uint8_t selected, const char* time, bool isTicking, bool isPause, bool isShow);
 void showTimerAlarm();
-void showStopwatch(String time, uint8_t selected, bool isTicking, bool isPause);
+void showStopwatch(const char* time, uint8_t selected, bool isTicking, bool isPause);
 
 // RGB functions
 #define GLOW_MODE 0
@@ -58,11 +58,12 @@ void setBlinkingSettings(uint8_t countsN, uint32_t durationN, uint32_t cdN);
 
 // RTC functions
 void rtcSetup();
-void getTime(String *buffer, bool sec);
-void getDate(String *buffer, bool withWeekday);
+void getTime(char *buffer, uint8_t bufferSize, bool sec);
+void getDate(char* buffer, uint8_t bufferSize, bool withWeekday);
 void setTime(uint8_t hours, uint8_t minutes, uint8_t seconds);
 void setDate(uint8_t day, uint8_t month, uint8_t year);
-void updateClock();
+void syncToClock();
+void syncFromClock();
 
 // Photoresistor functions
 int getBright();
@@ -172,41 +173,42 @@ void navigateView() {
 }
 
 void timeView() {
-    String time;
-    String date;
-    updateClock();
+    char time[9] = "";
+    char date[20] = "";
+    syncFromClock();
 
-    getTime(&time, false);
-    getDate(&date, true);
+    getTime(time, sizeof(time), false);
+    getDate(date, sizeof(date), true);
     
+
     showTime(time, date, true);
     setLedRGB(255, 255, 255);
     setLedMode(GLOW_MODE); 
 }
 
 void sensorView() {
-    float pressure = getPressure() * 0.7506;
+    int pressure = getPressure() * 0.7506;
 
     showSensorData(getTemperature(), pressure);
 
-    if (pressure <= 745) {
+    if (pressure < 735) {
         setLedRGB(0, 0, 255);
         setLedMode(BLINK_MODE);
         setBlinkingSettings(1, 500, 500);
     }
-    else if (pressure >= 746 && pressure <= 749) {
+    else if (pressure >= 735 && pressure < 754) {
         setLedRGB(0, 0, 255);
-        setLedMode(BREATHE_MODE);
+        setLedMode(GLOW_MODE);
     }
-    else if (pressure >= 750 && pressure <= 770) {
+    else if (pressure >= 754 && pressure < 769) {
         setLedRGB(0, 255, 0);
         setLedMode(GLOW_MODE);
     }
-    else if (pressure >= 771 && pressure <= 775) {
+    else if (pressure >= 769 && pressure < 780) {
         setLedRGB(175, 255, 0);
         setLedMode(GLOW_MODE);
     }
-    else if (pressure > 775) {
+    else if (pressure >= 780) {
         setLedRGB(255, 0, 0);
         setLedMode(BLINK_MODE);
         setBlinkingSettings(1, 500, 500);
@@ -323,12 +325,9 @@ void timerView() {
         seconds = timer1.getSeconds();
     }
 
-    String time;
-    time += (hours < 10) ? ('0' + String(hours)) : String(hours);
-    time += ':';
-    time += (minutes < 10) ? ('0' + String(minutes)) : String(minutes);
-    time += ':';
-    time += (seconds < 10) ? ('0' + String(seconds)) : String(seconds);
+    char time[9] = "";
+
+    snprintf(time, 9, "%02d:%02d:%02d", hours, minutes, seconds);
 
     showTimer(selected, time, clockFlags.timerTicking, clockFlags.timerPause, isShowTime);
 }
@@ -403,12 +402,20 @@ void stopwatchView() {
         }
     }
 
-    String time;
-    time += (stopwatch.getHours() < 10) ? ('0' + String(stopwatch.getHours())) : String(stopwatch.getHours());
-    time += ':';
-    time += (stopwatch.getMinutes() < 10) ? ('0' + String(stopwatch.getMinutes())) : String(stopwatch.getMinutes());
-    time += ':';
-    time += (stopwatch.getSeconds() < 10) ? ('0' + String(stopwatch.getSeconds())) : String(stopwatch.getSeconds());
+    char time[9] = "";
+    char stringHours[3] = "";
+    char stringMinutes[3] = "";
+    char stringSeconds[3] = "";
+
+    uint8_t hours = stopwatch.getHours();
+    uint8_t minutes = stopwatch.getMinutes();
+    uint8_t seconds = stopwatch.getSeconds();
+
+    itoa(hours, stringHours, 3);
+    itoa(minutes, stringMinutes, 3);
+    itoa(seconds, stringSeconds, 3);
+
+    snprintf(time, 9, "%02d:%02d:%02d", hours, minutes, seconds);
 
     showStopwatch(time, selected, clockFlags.stopwatchTicking, clockFlags.stopwatchPause);
 }
