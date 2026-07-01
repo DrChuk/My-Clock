@@ -2,6 +2,7 @@
 #include <EncButton.h>
 #include <ClockTimer.h>
 #include <ClockStopwatch.h>
+#include <ClockAlarm.h>
 
 // 0x27 - LCD, 0x57 - ?, 0x68 - DS3231 (RTC), 0x77 - BMP280 (Temperature Sensor)
 
@@ -34,12 +35,14 @@ void screenSetup();
 void screenLoop();
 void setScreenBright(uint8_t value);
 bool autoBright = true;
+bool brightLowOnStart = false;
 void showTime(const char* time, const char* date, bool isAmFormat);
 void showSensorData(int temp, int pressure);
 void showDefault();
 void showMenu(uint8_t menuState);
 void showTimer(uint8_t selected, const char* time, bool isTicking, bool isPause, bool isShow);
-void showTimerAlarm();
+void showAlarm();
+void showClockAlarm(uint8_t selected) {}
 void showStopwatch(const char* time, uint8_t selected, bool isTicking, bool isPause);
 
 // RGB functions
@@ -81,6 +84,11 @@ ClockFlags clockFlags;
 // Clock things
 // Timer
 ClockTimer timer1;
+// Alarms
+ClockAlarm clockAlarm1;
+ClockAlarm clockAlarm2;
+ClockAlarm clockAlarm3;
+ClockAlarm clockAlarm4;
 // Stopwatch
 Stopwatch stopwatch;
 
@@ -95,9 +103,15 @@ void setup() {
 
     Serial.begin(9600);
 
+    // setTime(16, 45, 0);
+    // syncToClock();
+
     timer1.attach([]() {
         clockFlags.timerActivated = true;
     });
+
+    // Проверка яркости чтобы не было темного экрана в темноте
+    if (getBright() < 15) brightLowOnStart = true;
 }
 
 void navigateView();
@@ -114,15 +128,18 @@ void loop() {
     if (clockFlags.timerActivated) timerAlarm();
     else navigateView();
 
-    if (brightTimer.ready() && autoBright) {
-        uint8_t brightScreen = map(getBright(), 0, 500, 10, 255);
+    int currentBright = getBright();
+
+    if (brightLowOnStart && currentBright >= 15) brightLowOnStart = false;
+
+    if (brightTimer.ready() && autoBright && !brightLowOnStart) {
+        uint8_t brightScreen = map(currentBright, 0, 500, 10, 255);
         brightScreen = constrain(brightScreen, 10, 255);
-        uint8_t brightLed = map(getBright(), 0, 1010, 10, 255);
+        uint8_t brightLed = map(currentBright, 0, 1010, 10, 255);
         brightLed = constrain(brightLed, 10, 255);
         setScreenBright(brightScreen);
         setLedBrightness(brightLed);
     }
-
 }
 
 // All views
@@ -332,6 +349,51 @@ void timerView() {
     showTimer(selected, time, clockFlags.timerTicking, clockFlags.timerPause, isShowTime);
 }
 
+bool inClockAlarmSetting = false;
+
+void clockAlarmView(ClockAlarm& clockAlarm) {
+    
+}
+
+void alarmView() {
+    static uint8_t selected;
+
+    if (enc.left() && selected > 0) selected--;
+    else if (enc.right() && selected < 4) selected++;
+
+    switch (selected) {
+        case 0:
+            if (enc.click()) isMenu = false;
+            break;
+        case 1 || 2 || 3 || 4:
+            if (enc.click()) {
+                inClockAlarmSetting = true;
+            }
+            break;
+    }
+
+    if (inClockAlarmSetting) {
+        switch (selected)
+        {
+            case 1:
+                clockAlarmView(clockAlarm1);
+                break;
+            case 2:
+                clockAlarmView(clockAlarm2);
+                break;
+            case 3:
+                clockAlarmView(clockAlarm3);
+                break;
+            case 4:
+                clockAlarmView(clockAlarm4);
+                break;
+        }
+    }
+    else {
+        showClockAlarm(selected);
+    }
+}
+
 void stopwatchView() {
     static uint8_t selected;
 
@@ -429,9 +491,9 @@ void menuView() {
             case 0: // Timer
                 timerView();
                 break;
-            // case 1: // Alarm
-            //     alarmView();
-            //     break;
+            case 1: // Alarm
+                alarmView();
+                break;
             case 2: // Stopwatch
                 stopwatchView();
                 break;
@@ -467,7 +529,7 @@ void timerAlarm() {
 
     autoBright = false;
     setScreenBright(255);
-    showTimerAlarm();
+    showAlarm();
     setLedBrightness(255);
     setLedRGB(255, 0, 0);
     setBlinkingSettings(4, 75, 1000);

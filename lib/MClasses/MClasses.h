@@ -1,7 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <stdio.h>
-
+#include <RTC.h>
 class Clock {
     private:
         uint8_t data[7];

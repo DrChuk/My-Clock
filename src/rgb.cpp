@@ -29,7 +29,7 @@ void setLedHue(uint8_t hue) {
     FastLED.show();
 }
 
-uint8_t targetBright = 0;
+uint8_t targetBright = 50;
 uint8_t mode;
 
 // Blinking effect settings

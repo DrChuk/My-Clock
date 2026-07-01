@@ -19,20 +19,21 @@ void showTime(const char* time, const char* date, bool isAmFormat) {
     uint8_t x = 3;
     uint8_t y = 1;
 
-    char* sep = strchr(time, ':');
-    char hoursS[3] = "";
-    strncpy(hoursS, time, sep - time);
-    uint8_t hours = atoi(hoursS);
-    // uint8_t minutes = (uint8_t)(time[3] - '0') * 10 + (uint8_t)(time[4] - '0');
+    uint8_t hours = (time[0] - '0') * 10 + (time[1] - '0');
+    uint8_t minutes = (time[3] - '0') * 10 + (time[4] - '0');
+    
     char ap[] = "MM";
-
+    
     if (isAmFormat) {
         ap[0] = (hours > 12) ? 'P' : 'A';
         if (hours > 12) hours -= 12;
     }
+    
+    char newTime[6] = "";
+    snprintf(newTime, 6, "%02d:%02d", hours, minutes);
 
-    for (uint8_t i = 0; i < strlen(time); i++) {
-        if (time[i] == ':') {
+    for (uint8_t i = 0; i < strlen(newTime); i++) {
+        if (newTime[i] == ':') {
             if (dots) {
                 display.setValue(165, x - 1, y);
                 display.setValue(165, x - 1, y + 1);
@@ -43,7 +44,7 @@ void showTime(const char* time, const char* date, bool isAmFormat) {
             }
         }
         else {
-            display.drawDigit(time[i] - '0', x, y);
+            display.drawDigit(newTime[i] - '0', x, y);
             x += 4;
         }
     }
@@ -268,7 +269,7 @@ void showStopwatch(const char* time, uint8_t selected, bool isTicking, bool isPa
     display.show();
 }
 
-void showTimerAlarm() {
+void showAlarm() {
     display.clear();
 
     display.print(F("Time Out"), 6, 1);
@@ -278,7 +279,7 @@ void showTimerAlarm() {
     display.show();
 }
 
-uint8_t targetValue;
+uint8_t targetValue = 50;
 
 void screenLoop() {
     static Timer timer(10);

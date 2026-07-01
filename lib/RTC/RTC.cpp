@@ -9,27 +9,22 @@ bool DS3231::init() {
     Wire.beginTransmission(address);
     if (Wire.endTransmission() != 0) return false;
 
-    uint8_t hourReg = read8(RTC_HOURS_REGISTER);
-    if (hourReg != RTC_ERROR) {
-        hourReg |= RTC_HOUR_12_24_BIT;
-        write8(RTC_HOURS_REGISTER, hourReg);
-    }
+    // uint8_t hourReg = read8(RTC_HOURS_REGISTER);
+    // if (hourReg != RTC_ERROR) {
+    //     hourReg |= RTC_HOUR_12_24_BIT;
+    //     if (!write8(RTC_HOURS_REGISTER, hourReg)) {
+    //         return false;  // Не удалось записать
+    //     }
+    // }
 
     return true;
 }
 
 uint8_t DS3231::getHours() {
-    uint8_t value = read8(RTC_HOURS_REGISTER);
-
-    if (value & RTC_HOUR_12_24_BIT) {
-        Serial.println(value & 0x3F);
-        return bcdToDec(value & 0x3F);
-    } else {
-        uint8_t hours = bcdToDec(value & 0x1F);
-        if (value & RTC_HOUR_AM_PM_BIT) hours += 12;
-        Serial.println(hours);
-        return hours;
-    }
+    uint8_t value = bcdToDec(read8(RTC_HOURS_REGISTER));
+    // Serial.println(value, BIN);
+    if (value == RTC_ERROR) return RTC_ERROR;
+    return value;
 }
 
 bool DS3231::setSeconds(uint8_t value) {
@@ -44,7 +39,8 @@ bool DS3231::setMinutes(uint8_t value) {
 
 bool DS3231::setHours(uint8_t value) {
     if (value > 23) return false;
-    uint8_t bcd = 0x40 | decToBcd(value);
+    uint8_t bcd = 0b00 | decToBcd(value);
+    // Serial.println(bcd, BIN);
     return write8(RTC_HOURS_REGISTER, bcd);
 }
 
@@ -59,13 +55,13 @@ bool DS3231::setMonth(uint8_t value) {
 }
 
 bool DS3231::setYear(uint8_t value) {
-    if (value > 99) return false;
+    if (value < 1 || value > 99) return false;
     return write8(RTC_YEAR_REGISTER, decToBcd(value));
 }
 
 bool DS3231::setWeekday(uint8_t value) {
     if (value < 1 || value > 7) return false;
-    return write8(RTC_WEEKDAY_REGISTER, decToBcd(value));
+    return write8(RTC_WEEKDAY_REGISTER, value);
 }
 
 uint8_t DS3231::read8(uint8_t reg) {
