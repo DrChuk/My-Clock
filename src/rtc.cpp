@@ -43,8 +43,9 @@ uint8_t getWeekday(uint8_t day, uint8_t month, uint8_t year) {
         monthNum[1]--;
     }
 
-    uint16_t yearNum = (6 + year + year / 4) % 7;
+    uint8_t yearNum = (6 + year + year / 4) % 7;
     uint8_t weekday = (day + monthNum[month - 1] + yearNum) % 7;
+    if (weekday == 0) weekday = 7;
     return weekday;
 }
 
